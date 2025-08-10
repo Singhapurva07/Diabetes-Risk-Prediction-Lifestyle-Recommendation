@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Diabetes Risk Prediction</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-shadow {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        .spinner {
+            display: none;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .input-group {
+            transition: all 0.3s ease;
+        }
+        .input-group:hover {
+            transform: translateY(-1px);
+        }
+        .form-input {
+            transition: all 0.3s ease;
+        }
+        .form-input:focus {
+            transform: scale(1.02);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip:hover .tooltiptext {
+            visibility: visible;
+            opacity: 1;
+        }
+        .tooltiptext {
+            visibility: hidden;
+            opacity: 0;
+            width: 300px;
+            background-color: #333;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -150px;
+            transition: opacity 0.3s;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+        .risk-indicator {
+            padding: 1rem;
+            border-radius: 0.75rem;
+            margin: 1rem 0;
+            border-left: 4px solid;
+        }
+        .risk-high {
+            background: rgba(239, 68, 68, 0.1);
+            border-color: #ef4444;
+        }
+        .risk-moderate {
+            background: rgba(245, 158, 11, 0.1);
+            border-color: #f59e0b;
+        }
+        .risk-low {
+            background: rgba(34, 197, 94, 0.1);
+            border-color: #22c55e;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <div class="gradient-bg text-white py-8">
+        <div class="container mx-auto px-6 text-center">
+            <h1 class="text-5xl font-bold mb-4">🏥 AI Diabetes Risk Predictor</h1>
+            <p class="text-xl opacity-90">Advanced machine learning for personalized health insights</p>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-6 py-8">
+        <div class="max-w-4xl mx-auto">
+            <!-- Main Form -->
+            <div class="bg-white rounded-2xl card-shadow p-8 mb-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">Enter Your Health Information</h2>
+                
+                <form id="prediction-form" method="POST" action="/" onsubmit="showSpinner()">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Pregnancies -->
+                        <div class="input-group">
+                            <label class="tooltip block text-gray-700 font-semibold mb-2 cursor-help">
+                                Pregnancies
+                                <span class="tooltiptext">Number of pregnancies (0-17). Multiple pregnancies, especially with gestational diabetes, increase diabetes risk due to hormonal changes affecting insulin sensitivity.</span>
+                            </label>
+                            <select name="pregnancies" class="form-input w-full p-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none" required>
+                                {% for i in range(0, 18) %}
+                                    <option value="{{ i }}" {% if i == 1 %}selected{% endif %}>{{ i }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <!-- Glucose -->
+                        <div class="input-group">
+                            <label class="tooltip block text-gray-700 font-semibold mb-2 cursor-help">
+                                Glucose Level (mg/dL)
+                                <span class="tooltiptext">Blood glucose concentration (70-200 mg/dL). Normal: <100, Pre-diabetes: 100-125, Diabetes: ≥126. Higher levels strongly indicate diabetes risk.</span>
+                            </label>
+                            <input type="number" name="glucose" step="0.1" min="0" max="300" placeholder="e.g., 120" 
+                                   class="form-input w-full p-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none" required>
+                        </div>
+
+                        <!-- Blood Pressure -->
+                        <div class="input-group">
+                            <label class="tooltip block text-gray-700 font-semibold mb-2 cursor-help">
+                                Blood Pressure (mm Hg)
+                                <span class="tooltiptext">Diastolic blood pressure (40-120 mm Hg). Normal: <80, Elevated: 80-89, High: ≥90. High blood pressure often accompanies diabetes.</span>
+                            </label>
+                            <input type="number" name="blood_pressure" step="0.1" min="0" max="150" placeholder="e.g., 80" 
+                                   class="form-input w-full p-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none" required>
+                        </div>
+
+                        <!-- Skin Thickness -->
+                        <div class="input-group">
+                            <label class="tooltip block text-gray-700 font-semibold mb-2 cursor-help">
+                                Skin Thickness (mm)
+                                <span class="tooltiptext">Triceps skin fold thickness (10-50 mm). Measures subcutaneous fat. Higher values indicate increased body fat, linked to insulin resistance.</span>
+                            </label>
+                            <input type="number" name="skin_thickness" step="0.1" min="0" max="100" placeholder="e.g., 20" 
+                                   class="form-input w-full p-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none" required>
+                        </div>
+
+                        <!-- Insulin -->
+                        <div class="input-group">
+                            <label class="tooltip block text-gray-700 font-semibold mb-2 cursor-help">
+                                Insulin Level (mu U/ml)
+                                <span class="tooltiptext">2-hour serum insulin (2-200 mu U/ml). Normal: 16-166. Abnormal levels suggest insulin production problems or resistance.</span>
+                            </label>
+                            <input type="number" name="insulin" step="0.1" min="0" max="900" placeholder="e.g., 79" 
+                                   class="form-input w-full p-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none" required>
+                        </div>
+
+                        <!-- BMI -->
+                        <div class="input-group">
+                            <label class="tooltip block text-gray-700 font-semibold mb-2 cursor-help">
+                                BMI (Body Mass Index)
+                                <span class="tooltiptext">Body mass index (15-50 kg/m²). Normal: 18.5-24.9, Overweight: 25-29.9, Obese: ≥30. Higher BMI significantly increases diabetes risk.</span>
+                            </label>
+                            <input type="number" name="bmi" step="0.1" min="10" max="70" placeholder="e.g., 25.5" 
+                                   class="form-input w-full p-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none" required>
+                        </div>
+
+                        <!-- Diabetes Pedigree -->
+                        <div class="input-group">
+                            <label class="tooltip block text-gray-700 font-semibold mb-2 cursor-help">
+                                Diabetes Pedigree Function
+                                <span class="tooltiptext">Genetic risk score (0.078-2.5). Calculated from family diabetes history. Higher values indicate stronger genetic predisposition to diabetes.</span>
+                            </label>
+                            <input type="number" name="diabetes_pedigree" step="0.001" min="0.078" max="3" placeholder="e.g., 0.5" 
+                                   class="form-input w-full p-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none" required>
+                        </div>
+
+                        <!-- Age -->
+                        <div class="input-group">
+                            <label class="tooltip block text-gray-700 font-semibold mb-2 cursor-help">
+                                Age (years)
+                                <span class="tooltiptext">Age in years (21-81). Diabetes risk increases with age, especially after 40 due to decreased insulin sensitivity and beta-cell function.</span>
+                            </label>
+                            <select name="age" class="form-input w-full p-3 border-2 border-gray-200 rounded-lg focus:border-purple-500 focus:outline-none" required>
+                                {% for i in range(18, 82) %}
+                                    <option value="{{ i }}" {% if i == 35 %}selected{% endif %}>{{ i }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="mt-8 text-center">
+                        <button type="submit" class="bg-gradient-to-r from-purple-600 to-blue-600 text-white px-8 py-4 rounded-lg hover:from-purple-700 hover:to-blue-700 transition-all duration-300 font-semibold text-lg shadow-lg transform hover:scale-105">
+                            🔮 Predict Diabetes Risk
+                        </button>
+                        <div id="spinner" class="spinner mt-4"></div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Results Section -->
+            {% if show_results %}
+            <div class="bg-white rounded-2xl card-shadow p-8 mb-8">
+                <div class="text-center mb-6">
+                    <h2 class="text-3xl font-bold {{ risk_class }} mb-4">{{ prediction }}</h2>
+                    
+                    <!-- Risk Level Indicator -->
+                    <div class="{% if 'High' in prediction %}risk-high{% elif 'Moderate' in prediction %}risk-moderate{% else %}risk-low{% endif %} risk-indicator">
+                        <div class="flex items-center justify-center">
+                            <span class="text-2xl mr-2">
+                                {% if 'High' in prediction %}⚠️
+                                {% elif 'Moderate' in prediction %}⚡
+                                {% else %}✅
+                                {% endif %}
+                            </span>
+                            <span class="font-semibold">
+                                {% if 'High' in prediction %}
+                                    High Risk - Immediate medical consultation recommended
+                                {% elif 'Moderate' in prediction %}
+                                    Moderate Risk - Lifestyle changes and monitoring advised
+                                {% else %}
+                                    Low Risk - Continue healthy lifestyle habits
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recommendations -->
+                {% if recommendations %}
+                <div class="mt-8">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4 text-center">🎯 Personalized Recommendations</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% for rec in recommendations %}
+                        <div class="bg-gradient-to-r from-blue-50 to-purple-50 p-4 rounded-lg border-l-4 border-blue-500">
+                            <p class="text-gray-700">{{ rec }}</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Feature Importance -->
+                <div class="mt-8 text-center">
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">📊 Key Risk Factors</h3>
+                    {% if probability is defined %}
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <img src="{{ url_for('static', filename='feature_importance.png') }}" 
+                             alt="Feature Importance Chart" 
+                             class="w-full max-w-2xl mx-auto rounded shadow-lg"
+                             onerror="this.style.display='none'">
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Information Panel -->
+            <div class="bg-white rounded-2xl card-shadow p-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">📋 Understanding Your Health Metrics</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-4">
+                        <div class="border-l-4 border-blue-500 pl-4">
+                            <h4 class="font-semibold text-gray-800">Pregnancies</h4>
+                            <p class="text-sm text-gray-600">Number of pregnancies. Gestational diabetes increases future diabetes risk.</p>
+                        </div>
+                        
+                        <div class="border-l-4 border-red-500 pl-4">
+                            <h4 class="font-semibold text-gray-800">Glucose Level</h4>
+                            <p class="text-sm text-gray-600">Blood sugar (mg/dL). Normal: <100, Pre-diabetes: 100-125, Diabetes: ≥126</p>
+                        </div>
+                        
+                        <div class="border-l-4 border-orange-500 pl-4">
+                            <h4 class="font-semibold text-gray-800">Blood Pressure</h4>
+                            <p class="text-sm text-gray-600">Diastolic pressure (mm Hg). Normal: <80, High: ≥90</p>
+                        </div>
+                        
+                        <div class="border-l-4 border-green-500 pl-4">
+                            <h4 class="font-semibold text-gray-800">Skin Thickness</h4>
+                            <p class="text-sm text-gray-600">Triceps fold (mm). Indicates body fat and insulin resistance.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div class="border-l-4 border-purple-500 pl-4">
+                            <h4 class="font-semibold text-gray-800">Insulin Level</h4>
+                            <p class="text-sm text-gray-600">Serum insulin (mu U/ml). Normal: 16-166. Abnormal levels indicate insulin issues.</p>
+                        </div>
+                        
+                        <div class="border-l-4 border-yellow-500 pl-4">
+                            <h4 class="font-semibold text-gray-800">BMI</h4>
+                            <p class="text-sm text-gray-600">Body Mass Index. Normal: 18.5-24.9, Overweight: 25-29.9, Obese: ≥30</p>
+                        </div>
+                        
+                        <div class="border-l-4 border-indigo-500 pl-4">
+                            <h4 class="font-semibold text-gray-800">Diabetes Pedigree</h4>
+                            <p class="text-sm text-gray-600">Genetic risk score (0.078-2.5). Higher values = stronger family history.</p>
+                        </div>
+                        
+                        <div class="border-l-4 border-pink-500 pl-4">
+                            <h4 class="font-semibold text-gray-800">Age</h4>
+                            <p class="text-sm text-gray-600">Age in years. Risk increases significantly after 40.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Important Notes -->
+                <div class="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-yellow-800 mb-2">⚠️ Important Notes:</h4>
+                    <ul class="text-sm text-yellow-700 space-y-1">
+                        <li>• Enter 0 for unknown values - the system will use median estimates</li>
+                        <li>• This tool is for educational purposes and risk assessment only</li>
+                        <li>• Always consult healthcare professionals for medical advice</li>
+                        <li>• Results are based on AI analysis of health patterns</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div class="text-center mt-8 text-gray-600">
+                <p class="text-sm">
+                    Powered by Advanced Machine Learning • Ensemble of RandomForest, XGBoost & LightGBM
+                    {% if gemini_available is defined and gemini_available %}
+                    • AI Recommendations by Gemini
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showSpinner() {
+            document.getElementById('spinner').style.display = 'block';
+            document.querySelector('button[type="submit"]').disabled = true;
+            document.querySelector('button[type="submit"]').innerHTML = '🔄 Analyzing...';
+        }
+
+        // Auto-hide spinner after form submission
+        window.addEventListener('load', function() {
+            const spinner = document.getElementById('spinner');
+            if (spinner) {
+                spinner.style.display = 'none';
+            }
+            const submitBtn = document.querySelector('button[type="submit"]');
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '🔮 Predict Diabetes Risk';
+            }
+        });
+
+        // Add smooth scrolling to results
+        {% if show_results %}
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                document.querySelector('.risk-indicator').scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center' 
+                });
+            }, 100);
+        });
+        {% endif %}
+    </script>
+</body>
+</html>
